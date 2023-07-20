@@ -1,0 +1,128 @@
+_schema-version: "3.1"
+ID: s4-glb-dummyTest
+description: A simple CAP project.
+version: 1.0.0
+modules:
+- name: s4-glb-dummyTest-srv
+  type: nodejs
+  path: gen/srv
+  requires:
+  - name: uaa_s4-glb-dummyTest
+  - name: s4-glb-dummyTest-destination-service
+  - name: s4-glb-dummyTest-connectivity-service
+  provides:
+  - name: srv-api
+    properties:
+      srv-url: ${default-url}
+  parameters:
+    buildpack: nodejs_buildpack
+  build-parameters:
+    builder: npm-ci
+- name: s4-glb-dummyTest-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: s4-glb-dummyTest-destination-service
+    parameters:
+      content-target: true
+  - name: s4-glb-dummyTest_html_repo_host
+    parameters:
+      service-key:
+        name: s4-glb-dummyTest_html_repo_host-key
+  - name: uaa_s4-glb-dummyTest
+    parameters:
+      service-key:
+        name: uaa_s4-glb-dummyTest-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: s4_glb_dummyTest_approuter_s4_glb_dummyTest_html_repo_host
+          ServiceInstanceName: s4-glb-dummyTest-html5-app-host-service
+          ServiceKeyName: s4-glb-dummyTest_html_repo_host-key
+          sap.cloud.service: s4-glb-dummyTest-approuter
+        - Authentication: OAuth2UserTokenExchange
+          Name: s4_glb_dummyTest_approuter_uaa_s4_glb_dummyTest
+          ServiceInstanceName: s4-glb-dummyTest-xsuaa-service
+          ServiceKeyName: uaa_s4-glb-dummyTest-key
+          sap.cloud.service: s4-glb-dummyTest-approuter
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: s4-glb-dummyTest-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: s4-glb-dummyTest_html_repo_host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - s4glbdummytestui.zip
+      name: s4glbdummytestui
+      target-path: resources/
+- name: s4glbdummytestui
+  type: html5
+  path: app/s4-glb-dummytest-ui
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: s4-glb-dummyTest-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          - Authentication: NoAuthentication
+            HTML5.DynamicDestination: true
+            HTML5.ForwardAuthToken: true
+            Name: s4-glb-dummyTest-endpoint
+            ProxyType: Internet
+            Type: HTTP
+            URL: ~{srv-api/srv-url}
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: s4-glb-dummyTest-destination-service
+    service-plan: lite
+  requires:
+  - name: srv-api
+- name: s4-glb-dummyTest_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: s4-glb-dummyTest-html5-app-host-service
+    service-plan: app-host
+- name: uaa_s4-glb-dummyTest
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: s4-glb-dummyTest-xsuaa-service
+    service-plan: application
+- name: s4-glb-dummyTest-connectivity-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: connectivity
+    service-plan: lite
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+  - builder: custom
+    commands:
+    - npx -p @sap/cds-dk cds build --production

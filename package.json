@@ -1,0 +1,43 @@
+{
+  "name": "s4-glb-dummyTest",
+  "version": "1.0.0",
+  "description": "A simple CAP project.",
+  "repository": "<Add your repository here>",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@sap-cloud-sdk/core": "^1.54.2",
+    "@sap-cloud-sdk/http-client": "^3.2.0",
+    "@sap/cds": "^6",
+    "express": "^4",
+    "passport": "^0.6.0"
+  },
+  "devDependencies": {
+    "@sap/ux-specification": "^1.108.9",
+    "rimraf": "^3.0.2",
+    "sqlite3": "^5"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "watch-s4-glb-dummytest-ui": "cds watch --open s4-glb-dummytest-ui/webapp/index.html?sap-ui-xx-viewCache=false",
+    "undeploy": "cf undeploy s4-glb-dummyTest --delete-services --delete-service-keys --delete-service-brokers",
+    "build": "rimraf resources mta_archives && mbt build --mtar archive",
+    "deploy": "cf deploy mta_archives/archive.mtar --retries 1"
+  },
+  "sapux": [
+    "app/s4-glb-dummytest-ui"
+  ],
+  "cds": {
+    "requires": {
+      "ZBR_API_DUMMY_O2": {
+        "kind": "odata-v2",
+        "model": "srv/external/ZBR_API_DUMMY_O2",
+        "csrf": true,
+        "credentials": {
+          "path": "/sap/opu/odata/sap/ZBR_API_DUMMY_O2",
+          "destination": "S4_On_Premise_Principal_GT1"
+        }
+      }
+    }
+  }
+}
